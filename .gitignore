@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Environment variables
+.env
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/settings.json
+
+# Experiment outputs
+experiments/outputs/
+
+# Evaluation results
+evaluation/scores/
