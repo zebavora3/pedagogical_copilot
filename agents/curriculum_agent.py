@@ -7,6 +7,7 @@ Returns the full reasoning trace and the structured output block.
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.llm import call_llm
@@ -14,15 +15,14 @@ from utils.prompt_loader import load_prompt
 import config
 
 
-def run_curriculum_agent(teaching_material: str, model: str = config.DEFAULT_MODEL) -> dict:
+def run_curriculum_agent(
+    teaching_material: str,
+    model: str = config.DEFAULT_MODEL
+) -> dict:
     """
     Run the Curriculum Design Agent.
-
-    Returns a dict with:
-        reasoning_trace  — the full Thought/Action/Observation chain
-        structured_output — everything between the output delimiters
-        success          — True if FINALISE was called and output was parsed
     """
+
     print("  [Curriculum Agent] Starting Stage 1 reasoning loop...")
 
     system_prompt = load_prompt("curriculum_agent")
@@ -44,40 +44,44 @@ Call FINALISE() only when all criteria are satisfied.
     )
 
     result = _parse_response(raw_response)
+
     print(f"  [Curriculum Agent] Done. Success: {result['success']}")
+
     return result
 
 
 def _parse_response(raw_response: str) -> dict:
     """
-    Split the response into reasoning trace and structured output.
-    Looks for the ---CURRICULUM AGENT OUTPUT--- delimiter.
+    Split the model response into:
+        - reasoning trace
+        - structured output
     """
-    delimiter_start = "---CURRICULUM AGENT OUTPUT---"
-    delimiter_end   = "---END CURRICULUM AGENT OUTPUT---"
 
-    if delimiter_start not in raw_response:
-        # Model did not call FINALISE properly — return full response as trace
+    start = "---CURRICULUM AGENT OUTPUT---"
+    end = "---END CURRICULUM AGENT OUTPUT---"
+
+    if start not in raw_response:
         return {
-            "reasoning_trace":   raw_response,
+            "agent": "Curriculum",
+            "success": False,
+            "reasoning_trace": raw_response,
             "structured_output": "",
-            "success":           False,
-            "error":             "FINALISE() not called — output delimiter not found",
+            "raw_response": raw_response,
+            "error": "Output delimiter not found."
         }
 
-    parts = raw_response.split(delimiter_start, 1)
-    reasoning_trace = parts[0].strip()
+    reasoning_trace, remainder = raw_response.split(start, 1)
 
-    output_block = parts[1]
-    if delimiter_end in output_block:
-        output_block = output_block.split(delimiter_end, 1)[0]
-
-    structured_output = output_block.strip()
+    if end in remainder:
+        structured_output = remainder.split(end, 1)[0].strip()
+    else:
+        structured_output = remainder.strip()
 
     return {
-        "reasoning_trace":   reasoning_trace,
+        "agent": "Curriculum",
+        "success": True,
+        "reasoning_trace": reasoning_trace.strip(),
         "structured_output": structured_output,
-        "success":           True,
-        "error":             None,
+        "raw_response": raw_response,
+        "error": None
     }
-

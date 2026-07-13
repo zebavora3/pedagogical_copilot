@@ -7,6 +7,7 @@ assessment design, and source teaching material.
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.llm import call_llm
@@ -23,19 +24,13 @@ def run_verification_agent(
 ) -> dict:
     """
     Run the Verification Agent.
-
-    Returns:
-        reasoning_trace
-        structured_output
-        success
     """
 
     print("  [Verification Agent] Starting verification...")
 
     system_prompt = load_prompt("verification_agent")
 
-    user_content = f"""
-Teaching material:
+    user_content = f"""Teaching material:
 
 {teaching_material}
 
@@ -78,8 +73,7 @@ Conclude by calling either PASS(), CRITIQUE(), or HUMAN_REVIEW_REQUIRED().
 
 def _parse_response(raw_response: str) -> dict:
     """
-    The verification agent doesn't use delimiters.
-    Instead we detect the final decision.
+    Parse the verification response and determine the final decision.
     """
 
     if "PASS()" in raw_response:
@@ -95,7 +89,11 @@ def _parse_response(raw_response: str) -> dict:
         decision = "UNKNOWN"
 
     return {
-        "reasoning_trace": raw_response,
-        "decision": decision,
+        "agent": "Verification",
         "success": decision != "UNKNOWN",
+        "reasoning_trace": raw_response,
+        "structured_output": decision,
+        "raw_response": raw_response,
+        "decision": decision,
+        "error": None if decision != "UNKNOWN" else "No valid verification decision found."
     }

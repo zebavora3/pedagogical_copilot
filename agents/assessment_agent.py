@@ -7,6 +7,7 @@ Returns the reasoning trace and the structured assessment output.
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.llm import call_llm
@@ -21,19 +22,13 @@ def run_assessment_agent(
 ) -> dict:
     """
     Run the Assessment Design Agent.
-
-    Returns:
-        reasoning_trace
-        structured_output
-        success
     """
 
     print("  [Assessment Agent] Starting Stage 2 reasoning loop...")
 
     system_prompt = load_prompt("assessment_agent")
 
-    user_content = f"""
-Teaching material:
+    user_content = f"""Teaching material:
 
 {teaching_material}
 
@@ -44,9 +39,7 @@ Curriculum Design Agent Output:
 
 
 Begin your Thought → Action → Observation reasoning now.
-
 Work through as many cycles as needed.
-
 Call FINALISE() only when all criteria are satisfied.
 """
 
@@ -65,26 +58,37 @@ Call FINALISE() only when all criteria are satisfied.
 
 
 def _parse_response(raw_response: str) -> dict:
+    """
+    Split the model response into:
+        - reasoning trace
+        - structured assessment output
+    """
 
-    delimiter_start = "---ASSESSMENT AGENT OUTPUT---"
-    delimiter_end = "---END ASSESSMENT AGENT OUTPUT---"
+    start = "---ASSESSMENT AGENT OUTPUT---"
+    end = "---END ASSESSMENT AGENT OUTPUT---"
 
-    if delimiter_start not in raw_response:
+    if start not in raw_response:
         return {
+            "agent": "Assessment",
+            "success": False,
             "reasoning_trace": raw_response,
             "structured_output": "",
-            "success": False,
-            "error": "Assessment output delimiter not found.",
+            "raw_response": raw_response,
+            "error": "Output delimiter not found."
         }
 
-    reasoning_trace, output_block = raw_response.split(delimiter_start, 1)
+    reasoning_trace, remainder = raw_response.split(start, 1)
 
-    if delimiter_end in output_block:
-        output_block = output_block.split(delimiter_end, 1)[0]
+    if end in remainder:
+        structured_output = remainder.split(end, 1)[0].strip()
+    else:
+        structured_output = remainder.strip()
 
     return {
-        "reasoning_trace": reasoning_trace.strip(),
-        "structured_output": output_block.strip(),
+        "agent": "Assessment",
         "success": True,
-        "error": None,
+        "reasoning_trace": reasoning_trace.strip(),
+        "structured_output": structured_output,
+        "raw_response": raw_response,
+        "error": None
     }

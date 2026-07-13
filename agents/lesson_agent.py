@@ -7,6 +7,7 @@ No ReAct loop.
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.llm import call_llm
@@ -20,14 +21,13 @@ def run_lesson_agent(
     stage2_output: str,
     lecturer_request: str,
     model: str = config.DEFAULT_MODEL,
-) -> str:
+) -> dict:
 
     print("  [Lesson Generation Agent] Generating final artifact...")
 
     system_prompt = load_prompt("lesson_agent")
 
-    user_content = f"""
-Teaching material:
+    user_content = f"""Teaching material:
 
 {teaching_material}
 
@@ -50,7 +50,7 @@ Lecturer Request:
 Generate the final teaching artifact.
 """
 
-    response = call_llm(
+    raw_response = call_llm(
         system_prompt=system_prompt,
         user_content=user_content,
         model=model,
@@ -59,4 +59,11 @@ Generate the final teaching artifact.
 
     print("  [Lesson Generation Agent] Done.")
 
-    return response
+    return {
+        "agent": "Lesson",
+        "success": True,
+        "reasoning_trace": "",
+        "structured_output": raw_response.strip(),
+        "raw_response": raw_response,
+        "error": None,
+    }
